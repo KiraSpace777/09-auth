@@ -1,0 +1,59 @@
+/* components/Footer.module.css */
+
+.footer {
+  padding: 20px;
+  background-color: #f0f0f0;
+  text-align: center;
+  font-size: 14px;
+  color: #555;
+  border-top: 1px solid #ddd;
+  /* ---------------------- */
+  margin-top: auto;
+}
+
+.wrap {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.footer a {
+  color: #226ec5;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   НАЛАШТУВАННЯ ВІДОБРАЖЕННЯ ФУТЕРА ВНИЗУ СТОРІНКИ (STICKY FOOTER)
+   ========================================================================== */
+/* 
+  Використовуємо :global(), щоб Turbopack дозволив стилізувати базові 
+  теги сторінки безпосередньо з цього файлу CSS-модуля.
+*/
+
+/* Розтягуємо базову структуру на всю висоту видимого вікна браузера */
+:global(html),
+:global(body) {
+  height: 100%;
+}
+
+/* Перетворюємо body на флекс-контейнер з вертикальною орієнтацією тегів */
+:global(body) {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+/* 
+  Головний контент сайту автоматично заповнює весь вільний простір, 
+  примусово виштовхуючи футер на самий нижній край екрана 
+*/
+:global(main),
+:global(.main),
+:global(header + div) {
+  flex: 1 0 auto;
+}

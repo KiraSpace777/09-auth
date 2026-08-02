@@ -1,0 +1,18 @@
+body {
+  font-family: var(--font-roboto), sans-serif;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  margin: 0;
+  background-color: #f8f9fa;
+}
+
+/* Змушуємо головний контейнер сайту займати всю ширину екрана без обмежень */
+main {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
