@@ -1,56 +1,58 @@
-"use client";
-
-// Сторінка входу в систему
 // app/(auth routes)/sign-in/page.tsx
+// ===================================
+// Сторінка входу в систему користувача
+
+"use client";
 
 import { useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
-import axios from "axios";
-import type { AxiosError } from "axios";
+import axios, { AxiosError } from "axios";
 import { login as loginApi } from "@/lib/api/clientApi";
 import { useAuthStore } from "@/lib/store/authStore";
 import type { User } from "@/types/user";
 import css from "./SignInPage.module.css";
 
-// ТИПІЗАЦІЯ ДЛЯ СЕРВЕРНИХ ПОМИЛОК
-// ------------------------------------------
+// КОНСТАНТИ ДЛЯ НАЛАШТУВАННЯ ВАЛІДАЦІЇ ТА КЕШУВАННЯ МАРШРУТІВ
+const MIN_USERNAME_LENGTH = 3;
+const REDIRECT_SUCCESS_PATH = "/profile";
+
+// ПОЧАТКОВИЙ СТАН ПОЛІВ ФОРМИ ЗГІДНО З НОВИМИ ПАРАМЕТРАМИ АПІ
+const INITIAL_VALUES = {
+  email: "",
+  username: "",
+};
+
+// СХЕМА ВАЛІДАЦІЇ ДЛЯ ПЕРЕВІРКИ ЕЛЕКТРОННОЇ ПОШТИ ТА ІМЕНІ КОРИСТУВАЧА
+const SignInValidationSchema = Yup.object().shape({
+  email: Yup.string().email("Invalid email address").required("Email is required"),
+  username: Yup.string()
+    .min(MIN_USERNAME_LENGTH, `Username must be at least ${MIN_USERNAME_LENGTH} characters`)
+    .required("Username is required"),
+});
+
+// ТИПІЗАЦІЯ ДЛЯ СЕРВЕРНИХ ПОМИЛОК ВІДПОВІДІ
 interface ApiErrorResponse {
   message: string;
 }
 
-// КОНСТАНТИ ТА СХЕМА ВАЛІДАЦІЇ ФОРМИ
-// ------------------------------------------
-const INITIAL_VALUES = {
-  email: "",
-  password: "",
-};
-
-const SignInValidationSchema = Yup.object().shape({
-  email: Yup.string().email("Invalid email address").required("Email is required"),
-  password: Yup.string().required("Password is required"),
-});
-
-// КЛІЄНТСЬКА СТОРІНКА: АВТОРИЗАЦІЯ КОРИСТУВАЧА
-// ------------------------------------------
+// КЛІЄНТСЬКА СТОРІНКА ДЛЯ АВТЕНТИФІКАЦІЇ КОРИСТУВАЧА
 export default function SignInPage() {
   const router = useRouter();
 
-  // Отримання актуального стану та методів сховища Zustand
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const setUser = useAuthStore((state) => state.setUser);
+  // ОТРИМАННЯ АКТУАЛЬНОГО СТАНУ ТА МЕТОДІВ З ГЛОБАЛЬНОГО СХОВИЩА ЗУСТАНД
+  const { isAuthenticated, setUser } = useAuthStore();
 
-  // ЗАЛІЗНЕ ВИПРАВЛЕННЯ: Автоматичний редірект авторизованого користувача у профіль
-  // Якщо глобальний AuthProvider підтвердив сесію при F5, миттєво перенаправляємо користувача
+  // АВТОМАТИЧНИЙ ПЕРЕНАПРАВЛЕННЯ ВЖЕ АВТОРИЗОВАНОГО КОРИСТУВАЧА В ПРОФІЛЬ
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace("/profile");
+      router.replace(REDIRECT_SUCCESS_PATH);
     }
   }, [isAuthenticated, router]);
 
-  // Налаштування мутації для аутентифікації користувача з суворою типізацією відповіді
+  // НАЛАШТУВАННЯ МУТАЦІЇ ДЛЯ АВТЕНТИФІКАЦІЇ З СУВОРОЮ ТИПІЗАЦІЄЮ
   const { mutate, isPending, error } = useMutation<
     User,
     AxiosError<ApiErrorResponse>,
@@ -58,14 +60,16 @@ export default function SignInPage() {
   >({
     mutationFn: loginApi,
     onSuccess: (userData) => {
-      // Зберігаємо об'єкт аутентифікованого користувача в глобальний стор
+      // ЗБЕРЕЖЕННЯ ОБ'ЄКТА АВТОРИЗОВАНОГО КОРИСТУВАЧА В ГЛОБАЛЬНИЙ СТОР
       setUser(userData);
-      // Перенаправляємо користувача в особистий кабінет після успішного входу
-      router.push("/profile");
+
+      // ПЕРЕХІД ДО ОСОБИСТОГО КАБІНЕТУ ПІСЛЯ УСПІШНОГО ВХОДУ
+      router.push(REDIRECT_SUCCESS_PATH);
     },
   });
 
-  const handleSubmit = (values: typeof INITIAL_VALUES) => {
+  // ОБРОБНИК ВІДПРАВКИ ДАНИХ ФОРМИ АВТЕНТИФІКАЦІЇ
+  const handleFormSubmit = (values: typeof INITIAL_VALUES) => {
     mutate(values);
   };
 
@@ -74,27 +78,39 @@ export default function SignInPage() {
       <Formik
         initialValues={INITIAL_VALUES}
         validationSchema={SignInValidationSchema}
-        onSubmit={handleSubmit}
+        onSubmit={handleFormSubmit}
       >
         {({ isSubmitting }) => (
           <Form className={css.form}>
             <h1 className={css.formTitle}>Sign in</h1>
 
-            {/* Поле введення електронної пошти */}
+            {/* ПОЛЕ ВВЕДЕННЯ ЕЛЕКТРОННОЇ ПОШТИ КОРИСТУВАЧА */}
             <div className={css.formGroup}>
               <label htmlFor="email">Email</label>
-              <Field type="email" id="email" name="email" className={css.input} required />
+              <Field
+                type="email"
+                id="email"
+                name="email"
+                className={css.input}
+                placeholder="Enter email"
+              />
               <ErrorMessage name="email" component="div" className={css.error} />
             </div>
 
-            {/* Поле введення пароля користувача */}
+            {/* ПОЛЕ ВВЕДЕННЯ ІМЕНІ КОРИСТУВАЧА ЗАМІСТЬ СТAРОГО ПAРОЛЯ */}
             <div className={css.formGroup}>
-              <label htmlFor="password">Password</label>
-              <Field type="password" id="password" name="password" className={css.input} required />
-              <ErrorMessage name="password" component="div" className={css.error} />
+              <label htmlFor="username">Username</label>
+              <Field
+                type="text"
+                id="username"
+                name="username"
+                className={css.input}
+                placeholder="Enter username"
+              />
+              <ErrorMessage name="username" component="div" className={css.error} />
             </div>
 
-            {/* Блок надсилання форми */}
+            {/* БЛОК КНОПКИ ВІДПРАВКИ ДАНИХ АВТЕНТИФІКАЦІЇ */}
             <div className={css.actions}>
               <button
                 type="submit"
@@ -105,7 +121,7 @@ export default function SignInPage() {
               </button>
             </div>
 
-            {/* Відображення помилки від сервера у разі невдалого запиту */}
+            {/* ВІДОБРАЖЕННЯ ПОМИЛКИ ВІД СЕРВЕРА ПРИ НЕВДАЛОМУ ЗАПИТІ */}
             {error && axios.isAxiosError(error) && (
               <p className={css.error}>
                 {error.response?.data?.message || "Login failed. Please check your credentials."}
@@ -117,112 +133,3 @@ export default function SignInPage() {
     </main>
   );
 }
-
-// ============================================
-// "use client";
-
-// // Сторінка входу в систему
-// // app/(auth routes)/sign-in/page.tsx
-
-// import { useMutation } from "@tanstack/react-query";
-// import { useRouter } from "next/navigation";
-// import { Formik, Form, Field, ErrorMessage } from "formik";
-// import * as Yup from "yup";
-// import axios from "axios";
-// import type { AxiosError } from "axios";
-// import { login as loginApi } from "@/lib/api/clientApi";
-// import { useAuthStore } from "@/lib/store/authStore";
-// import type { User } from "@/types/user";
-// import css from "./SignInPage.module.css";
-
-// // ТИПІЗАЦІЯ ДЛЯ СЕРВЕРНИХ ПОМИЛОК
-// // ------------------------------------------
-// interface ApiErrorResponse {
-//   message: string;
-// }
-
-// // КОНСТАНТИ ТА СХЕМА ВАЛІДАЦІЇ ФОРМИ
-// // ------------------------------------------
-// const INITIAL_VALUES = {
-//   email: "",
-//   password: "",
-// };
-
-// const SignInValidationSchema = Yup.object().shape({
-//   email: Yup.string().email("Invalid email address").required("Email is required"),
-//   password: Yup.string().required("Password is required"),
-// });
-
-// // КЛІЄНТСЬКА СТОРІНКА: АВТОРИЗАЦІЯ КОРИСТУВАЧА
-// // ------------------------------------------
-// export default function SignInPage() {
-//   const router = useRouter();
-//   const setUser = useAuthStore((state) => state.setUser);
-
-//   // Налаштування мутації для аутентифікації користувача з суворою типізацією відповіді
-//   const { mutate, isPending, error } = useMutation<
-//     User,
-//     AxiosError<ApiErrorResponse>,
-//     typeof INITIAL_VALUES
-//   >({
-//     mutationFn: loginApi,
-//     onSuccess: (userData) => {
-//       // Зберігаємо об'єкт аутентифікованого користувача в глобальний стор
-//       setUser(userData);
-//       // Перенаправляємо користувача в особистий кабінет після успішного входу
-//       router.push("/profile");
-//     },
-//   });
-
-//   const handleSubmit = (values: typeof INITIAL_VALUES) => {
-//     mutate(values);
-//   };
-
-//   return (
-//     <main className={css.mainContent}>
-//       <Formik
-//         initialValues={INITIAL_VALUES}
-//         validationSchema={SignInValidationSchema}
-//         onSubmit={handleSubmit}
-//       >
-//         {({ isSubmitting }) => (
-//           <Form className={css.form}>
-//             <h1 className={css.formTitle}>Sign in</h1>
-
-//             {/* Поле введення електронної пошти */}
-//             <div className={css.formGroup}>
-//               <label htmlFor="email">Email</label>
-//               <Field type="email" id="email" name="email" className={css.input} required />
-//               <ErrorMessage name="email" component="div" className={css.error} />
-//             </div>
-
-//             {/* Поле введення пароля користувача */}
-//             <div className={css.formGroup}>
-//               <label htmlFor="password">Password</label>
-//               <Field type="password" id="password" name="password" className={css.input} required />
-//               <ErrorMessage name="password" component="div" className={css.error} />
-//             </div>
-
-//             {/* Блок надсилання форми */}
-//             <div className={css.actions}>
-//               <button
-//                 type="submit"
-//                 className={css.submitButton}
-//                 disabled={isPending || isSubmitting}
-//               >
-//                 {isPending ? "Logging in..." : "Log in"}
-//               </button>
-//             </div>
-
-//             {/* Відображення помилки від сервера у разі невдалого запиту */}
-//             {error && axios.isAxiosError(error) && (
-//               <p className={css.error}>
-//                 {error.response?.data?.message || "Login failed. Please check your credentials."}
-//               </p>
-//             )}
-//           </Form>
-//         )}
-//       </Formik>
-//     </main>
-//   );
-// }

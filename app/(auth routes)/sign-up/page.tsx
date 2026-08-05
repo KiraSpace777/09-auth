@@ -1,46 +1,50 @@
-"use client";
-
-// Сторінка реєстрації нових користувачів
 // app/(auth routes)/sign-up/page.tsx
+// ===================================
+// Сторінка реєстрації нових користувачів у системі
+
+"use client";
 
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
-import axios from "axios";
-import type { AxiosError } from "axios";
+import axios, { AxiosError } from "axios";
 import { register as registerApi } from "@/lib/api/clientApi";
 import { useAuthStore } from "@/lib/store/authStore";
 import type { User } from "@/types/user";
 import css from "./SignUpPage.module.css";
 
+// КОНСТАНТИ ДЛЯ НАЛАШТУВАННЯ ВАЛІДАЦІЇ ТА КЕШУВАННЯ МАРШРУТІВ
+const MIN_USERNAME_LENGTH = 3;
+const REDIRECT_SUCCESS_PATH = "/profile";
+
+// ПОЧАТКОВИЙ СТАН ПОЛІВ ФОРМИ ЗГІДНО З НОВИМИ ПАРАМЕТРАМИ АПІ
+const INITIAL_VALUES = {
+  email: "",
+  username: "",
+};
+
+// СХЕМА ВАЛІДАЦІЇ ДЛЯ ПЕРЕВІРКИ ЕЛЕКТРОННОЇ ПОШТИ ТА ІМЕНІ КОРИСТУВАЧА
+const SignUpValidationSchema = Yup.object().shape({
+  email: Yup.string().email("Invalid email address").required("Email is required"),
+  username: Yup.string()
+    .min(MIN_USERNAME_LENGTH, `Username must be at least ${MIN_USERNAME_LENGTH} characters`)
+    .required("Username is required"),
+});
+
 // ТИПІЗАЦІЯ ДЛЯ СЕРВЕРНИХ ПОМИЛОК ВІДПОВІДІ
-// ------------------------------------------
 interface ApiErrorResponse {
   message: string;
 }
 
-// КОНСТАНТИ ТА СХЕМА ВАЛІДАЦІЇ ФОРМИ
-// ------------------------------------------
-const INITIAL_VALUES = {
-  email: "",
-  password: "",
-};
-
-const SignUpValidationSchema = Yup.object().shape({
-  email: Yup.string().email("Invalid email address").required("Email is required"),
-  password: Yup.string()
-    .min(6, "Password must be at least 6 characters")
-    .required("Password is required"),
-});
-
-// КЛІЄНТСЬКА СТОРІНКА: СТВОРЕННЯ ОБЛІКОВОГО ЗАПИСУ
-// ------------------------------------------
+// КЛІЄНТСЬКА СТОРІНКА ДЛЯ СТВОРЕННЯ ОБЛІКОВОГО ЗАПИСУ
 export default function SignUpPage() {
   const router = useRouter();
+
+  // ОТРИМАННЯ МЕТОДУ З ГЛОБАЛЬНОГО СХОВИЩА ЗУСТАНД
   const setUser = useAuthStore((state) => state.setUser);
 
-  // Ініціалізація мутації створення профілю з виключенням небезпечних типів
+  // НАЛАШТУВАННЯ МУТАЦІЇ ДЛЯ СТВОРЕННЯ ПРОФІЛЮ З СУВОРОЮ ТИПІЗАЦІЄЮ
   const { mutate, isPending, error } = useMutation<
     User,
     AxiosError<ApiErrorResponse>,
@@ -48,14 +52,16 @@ export default function SignUpPage() {
   >({
     mutationFn: registerApi,
     onSuccess: (userData) => {
-      // Зберігаємо сесію створеного користувача у глобальному стані програми
+      // ЗБЕРЕЖЕННЯ СЕСІЇ СТВОРЕНОГО КОРИСТУВАЧА У ГЛОБАЛЬНОМУ СТАНІ ПРОГРАМИ
       setUser(userData);
-      // Автоматичний редірект на внутрішню сторінку після створення облікового запису
-      router.push("/profile");
+
+      // АВТОМАТИЧНЕ ПЕРЕНАПРАВЛЕННЯ НА ВНУТРІШНЮ СТОРІНКУ ПІСЛЯ СТВОРЕННЯ ОБЛІКОВОГО ЗАПИСУ
+      router.push(REDIRECT_SUCCESS_PATH);
     },
   });
 
-  const handleSubmit = (values: typeof INITIAL_VALUES) => {
+  // ОБРОБНИК ВІДПРАВКИ ДАНИХ ФОРМИ РЕЄСТРАЦІЇ
+  const handleFormSubmit = (values: typeof INITIAL_VALUES) => {
     mutate(values);
   };
 
@@ -64,27 +70,39 @@ export default function SignUpPage() {
       <Formik
         initialValues={INITIAL_VALUES}
         validationSchema={SignUpValidationSchema}
-        onSubmit={handleSubmit}
+        onSubmit={handleFormSubmit}
       >
         {({ isSubmitting }) => (
           <Form className={css.form}>
             <h1 className={css.formTitle}>Sign up</h1>
 
-            {/* Поле введення електронної пошти */}
+            {/* ПОЛЕ ВВЕДЕННЯ ЕЛЕКТРОННОЇ ПОШТИ КЛИЕНТА */}
             <div className={css.formGroup}>
               <label htmlFor="email">Email</label>
-              <Field type="email" id="email" name="email" className={css.input} required />
+              <Field
+                type="email"
+                id="email"
+                name="email"
+                className={css.input}
+                placeholder="Enter email"
+              />
               <ErrorMessage name="email" component="div" className={css.error} />
             </div>
 
-            {/* Поле створення власного пароля */}
+            {/* ПОЛЕ ВВЕДЕННЯ ІМЕНІ НОВОГО КОРИСТУВАЧА ЗАМІСТЬ СТAРОГО ПAРОЛЯ */}
             <div className={css.formGroup}>
-              <label htmlFor="password">Password</label>
-              <Field type="password" id="password" name="password" className={css.input} required />
-              <ErrorMessage name="password" component="div" className={css.error} />
+              <label htmlFor="username">Username</label>
+              <Field
+                type="text"
+                id="username"
+                name="username"
+                className={css.input}
+                placeholder="Enter username"
+              />
+              <ErrorMessage name="username" component="div" className={css.error} />
             </div>
 
-            {/* Блок керування формою */}
+            {/* БЛОК КЕРУВАННЯ ФОРМОЮ ТА НАДСИЛАННЯ ДАНИХ */}
             <div className={css.actions}>
               <button
                 type="submit"
@@ -95,7 +113,7 @@ export default function SignUpPage() {
               </button>
             </div>
 
-            {/* Обробка та виведення повідомлень про помилки реєстрації */}
+            {/* ОБРОБКА ТА ВИВЕДЕННЯ ПОВІДОМЛЕНЬ ПРО ПОМИЛКИ РЕЄСТРАЦІЇ ВІД СЕРВЕРА */}
             {error && axios.isAxiosError(error) && (
               <p className={css.error}>
                 {error.response?.data?.message || "Registration failed. Try again."}
