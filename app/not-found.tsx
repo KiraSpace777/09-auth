@@ -5,6 +5,11 @@
 
 import type { Metadata } from "next";
 
+const META_OG_URL_MAIN = "https://notehub-api.goit.study";
+const META_OG_URL_IMG = "https://ac.goit.global/fullstack/react/notehub-og-meta.jpg";
+const META_OG_IMG_W = 1200;
+const META_OG_IMG_H = 630;
+
 // Експорт метаданих згідно з вимогами домашнього завдання
 export const metadata: Metadata = {
   title: "404 - Page not found | NoteHub",
@@ -12,12 +17,12 @@ export const metadata: Metadata = {
   openGraph: {
     title: "404 - Page not found | NoteHub",
     description: "Sorry, the page you are looking for does not exist or has been moved.",
-    url: "https://notehub.com",
+    url: META_OG_URL_MAIN,
     images: [
       {
-        url: "https://goit.global",
-        width: 1200,
-        height: 630,
+        url: META_OG_URL_IMG,
+        width: META_OG_IMG_W,
+        height: META_OG_IMG_H,
         alt: "404 Page Not Found | NoteHub",
       },
     ],

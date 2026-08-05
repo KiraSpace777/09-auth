@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { CreateNoteData } from "@/types/note";
 
-// Типізуємо наш Zustand-стор відповідно до вимог ТЗ
+// Типізуємо наш Zustand-стор
 interface NoteStoreState {
   draft: CreateNoteData;
   setDraft: (note: Partial<CreateNoteData>) => void;

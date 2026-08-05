@@ -1,62 +1,58 @@
+// components/Modal/Modal.tsx
+// =============================
+// Універсальний компонент модального вікна з використанням React Portal
+
 "use client";
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import css from "./Modal.module.css";
 
+// ТИПІЗАЦІЯ ПРОПСІВ ДЛЯ МОДАЛЬНОГО ВІКНА
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  children: React.ReactNode;
+  children: React.ReactNode; // ВИПРАВЛЕНО: ВИКОРИСТОВУЄМО ТІЛЬКИ ВАЛІДНИЙ СТАНДАРТНИЙ ТИП REACT
 }
 
+// КЛІЄНТСЬКИЙ КОМПОНЕНТ ОБГОРТКИ МОДАЛЬНОГО ВІКНА
 export default function Modal({ isOpen, onClose, children }: ModalProps) {
-  // Налаштування глобальних подій браузера та поведінки сторінки при відкритті модалки
+  // ФІКСАЦІЯ МОНТУВАННЯ ТА КЕРУВАННЯ СЛУХАЧАМИ ПОДІЙ КЛАВІАТУРИ
   useEffect(() => {
-    // Якщо вікно закрите — нічого не робимо і слухачі не вішаємо
     if (!isOpen) return;
 
-    // Створюємо функцію-обробник, яка закриє модалку при натисканні на кнопку Escape
-    const handleKeyDown = (event: KeyboardEvent): void => {
+    // ОБРОБНИК НАТИСКАННЯ КЛАВІШІ ESCAPE ДЛЯ ЗАКРИТТЯ ВІКНА
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
       }
     };
 
-    // Додаємо слухач подій на все вікно браузера для відстеження кнопки Escape
     window.addEventListener("keydown", handleKeyDown);
-    // Повністю блокуємо прокрутку (скрол) заднього фону сайту, поки відкрита модалка
     document.body.style.overflow = "hidden";
 
-    // Функція очищення: автоматично спрацьовує, коли модалка закривається або видаляється з екрана
+    // ОЧИЩЕННЯ СЛУХАЧІВ ТА ВІДНОВЛЕННЯ СТАНУ ПРОКРУТКИ САЙТУ
     return () => {
-      // знімаємо глобальний слухач клавіатури, щоб не засмічувати пам'ять браузера
       window.removeEventListener("keydown", handleKeyDown);
-      // повертаємо стандартну прокрутку сторінки сайту назад у первісний стан
       document.body.style.overflow = "";
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
-  // Функція для закриття модалки при кліку на сірий фон (бекдроп)
-  const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>): void => {
+  // ОБРОБНИК ЗАКРИТТЯ МОДАЛЬНОГО ВІКНА ПРИ КЛІКУ НА СІРИЙ ФОН (БЕКДРОП)
+  const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
       onClose();
     }
   };
 
-  // Використовуємо createPortal, щоб винести і відмалювати модалку в самому кінці тегу body, поза основним деревом React
+  // ЯКЩО ВІКНО ЗАКРИТЕ АБО КОД ВИКОНУЄТЬСЯ НА СЕРВЕРІ SSR - НІЧОГО НЕ РЕНДЕРИМО
+  if (!isOpen || typeof window === "undefined" || !document.body) return null;
+
+  // БЕЗПЕЧНИЙ РЕНДЕР ПОРТАЛУ БЕЗПОСЕРЕДНЬО В КОРІНЬ ДОКУМЕНТА BODY В БРАУЗЕРІ
   return createPortal(
-    <div
-      className={css.backdrop}
-      role="dialog"
-      aria-modal="true" // Позначаємо, що вміст під вікном є неактивним для доступності (accessibility)
-      onClick={handleBackdropClick}
-    >
-      {/* Контейнер нового вікна, куди через пропс children передаємо вміст із дочірнього елемента (форма NoteForm) */}
+    <div className={css.backdrop} role="dialog" aria-modal="true" onClick={handleBackdropClick}>
       <div className={css.modal}>{children}</div>
     </div>,
-    document.body, // Суворе місце призначення порталу в реальному DOM екрану
+    document.body,
   );
 }

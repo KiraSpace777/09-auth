@@ -9,7 +9,8 @@ import Link from "next/link";
 // ІНФОРМАЦІЙНІ КОНСТАНТИ
 const NOTE_API_INFO_URL = "https://notehub-public.goit.study/api/docs/#/";
 const DEVELOPER_NAME = "Anna Krochak";
-const CONTACT_EMAIL = "student@notehub.app";
+// const CONTACT_EMAIL = "student@notehub.app";
+const CONTACTS = "https://github.com/KiraSpace777";
 
 const Footer = () => {
   return (
@@ -27,9 +28,9 @@ const Footer = () => {
         <div className={css.wrap}>
           <p>Developer: {DEVELOPER_NAME}</p>
           <p>
-            Contact us:{" "}
-            <Link href={`mailto:${CONTACT_EMAIL}`} target="_blank">
-              {CONTACT_EMAIL}
+            Contact us: {/* <Link href={`mailto:${CONTACT_EMAIL}`} target="_blank"> */}
+            <Link href={CONTACTS} target="_blank">
+              GITHUB
             </Link>
           </p>
         </div>

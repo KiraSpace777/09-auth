@@ -7,11 +7,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { fetchNotes } from "@/lib/api";
+import { fetchNotes } from "@/lib/api/clientApi";
 import Loading from "@/app/loading";
 import NotFound from "@/app/not-found";
 
-import type { FetchNotesResponse } from "@/lib/api";
+import type { FetchNotesResponse } from "@/lib/api/clientApi";
 import type { Note } from "@/types/note";
 import css from "./NotePreview.module.css";
 
