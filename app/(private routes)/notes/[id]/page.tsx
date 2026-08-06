@@ -1,8 +1,3 @@
-// ========================================
-// Серверна сторінка для повного перегляду детальної інформації про нотатку
-// ========================================
-// app/(private routes)/notes/[id]/page.tsx
-
 // app/(private routes)/notes/[id]/page.tsx
 // ========================================
 // Серверна сторінка для повного перегляду детальної інформації про нотатку
@@ -19,7 +14,7 @@ interface PageProps {
 }
 
 // КОНСТАНТИ ДЛЯ ЗОВНІШНІХ МЕТАДАННИХ ТA КЕШУВАННЯ ЗАПИТІВ РЕАКТ КВЕРІ
-const META_OG_URL_IMG = "https://goit.global";
+const META_OG_URL_IMG = "https://ac.goit.global/fullstack/react/notehub-og-meta.jpg";
 const META_OG_IMG_W = 1200;
 const META_OG_IMG_H = 630;
 const NOTES_CACHE_KEY = "note";
