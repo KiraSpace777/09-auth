@@ -3,103 +3,58 @@
 // -----------------------------------------------
 //  app/(private routes)/profile/page.tsx
 // -----------------------------------------------
+// app/(private routes)/profile/page.tsx
+// =====================================
+// Серверна сторінка детального профілю користувача (SSR)
 
-"use client";
-
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
-import type { AxiosError } from "axios";
-import { getMe } from "@/lib/api/clientApi";
-import type { User } from "@/types/user";
+import { getMe } from "@/lib/api/serverApi"; // ВИКОРИСТАННЯ СЕРВЕРНОЇ ФУНКЦІЇ ДЛЯ ОТРИМАННЯ ДАНИХ
 import css from "./ProfilePage.module.css";
 
-// =========================================================================
-// КОНСТАНТИ КОНФІГУРАЦІЇ ЗОБРАЖЕНЬ ТА РОУТІВ
-// =========================================================================
-export const EDIT_PROFILE_ROUTE = "/profile/edit";
-export const AVATAR_SIZE = 150; // Фіксована базова ширина та висота аватара в пікселях
+const EDIT_PROFILE_ROUTE = "/profile/edit";
+const AVATAR_SIZE = 120;
 
-interface ApiErrorResponse {
-  message: string;
-}
+export const metadata: Metadata = {
+  title: "My Profile | NoteHub",
+  description: "View and manage your NoteHub personal profile information.",
+};
 
-// =========================================================================
-// КЛІЄНТЬКА СТОРІНКА: ДЕТАЛЬНИЙ ПРОФІЛЬ КОРИСТУВАЧА
-// =========================================================================
-export default function ProfilePage() {
-  const {
-    data: user,
-    isLoading,
-    error,
-  } = useQuery<User, AxiosError<ApiErrorResponse>>({
-    queryKey: ["user-profile"],
-    queryFn: getMe,
-    retry: false,
-  });
-
-  if (isLoading) {
-    return (
-      <div className={css.mainContent}>
-        <p style={{ color: "#333" }}>Loading profile details...</p>
-      </div>
-    );
-  }
-
-  if (error || !user) {
-    return (
-      <div className={css.mainContent}>
-        <div className={css.error}>
-          {error && axios.isAxiosError(error)
-            ? error.response?.data?.message
-            : "Failed to load profile."}
-        </div>
-      </div>
-    );
-  }
+export default async function ProfilePage() {
+  // ПРЯМЕ СЕРВЕРНЕ ОТРИМАННЯ ДАНИХ КОРИСТУВАЧА НА ЕТАПІ РЕНДЕРИНГУ СТОРІНКИ
+  const user = await getMe();
 
   return (
     <main className={css.mainContent}>
-      {/* Картка профілю користувача суворо за класами вашого CSS */}
       <div className={css.profileCard}>
-        {/* Шапка картки з назвою та кнопкою переходу до редагування */}
         <div className={css.header}>
-          <h1 className={css.formTitle}>My Profile</h1>
+          <h1 className={css.formTitle}>Profile Page</h1>
           <Link href={EDIT_PROFILE_ROUTE} className={css.editProfileButton}>
             Edit Profile
           </Link>
         </div>
 
-        {/* Блок відображення оптимізованого аватара без використання тегу img */}
-        {user.avatar && (
+        {user?.avatar && (
           <div className={css.avatarWrapper}>
             <Image
               src={user.avatar}
-              alt={`${user.username}'s avatar`}
+              alt="User Avatar"
               width={AVATAR_SIZE}
               height={AVATAR_SIZE}
               className={css.avatar}
-              unoptimized={true} // Дозволяє завантажувати зовнішні посилання GoIT без помилок доменів
+              unoptimized
             />
           </div>
         )}
 
-        {/* Секція відображення текстових полів профілю користувача */}
         <div className={css.profileInfo}>
-          <div className={css.usernameWrapper}>
-            <span>
-              <strong>Username:</strong>
-            </span>
-            <span>{user.username}</span>
-          </div>
-
-          <div className={css.usernameWrapper}>
-            <span>
-              <strong>Email Address:</strong>
-            </span>
-            <span>{user.email}</span>
-          </div>
+          <p>
+            <strong>Username:</strong> {user?.username}
+          </p>
+          <p>
+            <strong>Email Address:</strong> {user?.email}
+          </p>
         </div>
       </div>
     </main>

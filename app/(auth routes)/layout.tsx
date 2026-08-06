@@ -2,9 +2,12 @@
 // =============================
 // Спільний шаблон (лейаут) для сторінок авторизації та реєстрації
 
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
-// КОНСТАНТИ ДЛЯ СТИЛІЗАЦІЇ КОНТЕЙНЕРА АВТЕНТИФІКАЦІЇ НА ПОРТФОЛІО БЕЗ REM
 const AUTH_LAYOUT_STYLES = {
   display: "flex",
   alignItems: "center",
@@ -14,17 +17,17 @@ const AUTH_LAYOUT_STYLES = {
   backgroundColor: "transparent",
 };
 
-// ТИПІЗАЦІЯ ДЛЯ ВХІДНИХ ПАРАМЕТРІВ ШАБЛОНУ АВТЕНТИФІКАЦІЇ
 interface AuthLayoutProps {
   children: ReactNode;
 }
 
-// ГОЛОВНИЙ КОМПОНЕНТ ЛЕЙАУТУ ГРУПИ МАРШРУТІВ (AUTH ROUTES)
 export default function AuthLayout({ children }: AuthLayoutProps) {
-  return (
-    <div style={AUTH_LAYOUT_STYLES}>
-      {/* РЕНДЕРИНГ СТОРІНОК SIGN-IN ТА SIGN-UP ВСЕРЕДИНІ ОДНОРІДНОЇ ОБГОРТКИ */}
-      {children}
-    </div>
-  );
+  const router = useRouter();
+
+  // ОНОВЛЕННЯ ДАНИХ РОУТЕРА ПРИ МОНТУВАННІ КОМПОНЕНТА ДЛЯ СИНХРОНІЗАЦІЇ СТАНУ АВТОРІЗАЦІЇ
+  useEffect(() => {
+    router.refresh();
+  }, [router]);
+
+  return <div style={AUTH_LAYOUT_STYLES}>{children}</div>;
 }

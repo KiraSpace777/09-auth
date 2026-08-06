@@ -1,11 +1,10 @@
-// ==========================================================
-// Notes  (сторінка списку нотаток) - розмітка сторінки
-// SSR (Server-Side Rendering)
-// ==========================================================
+// app/(private routes)/notes/filter/[...slug]/page.tsx
+// ====================================================
+// Серверна сторінка фільтрації списку нотаток за категоріями (SSR)
 
 import type { Metadata } from "next";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
-import { fetchNotes } from "@/lib/api/clientApi";
+import { fetchNotes } from "@/lib/api/serverApi";
 import NotesClient from "./Notes.client";
 import { Suspense } from "react";
 import Loading from "@/app/loading";
@@ -21,28 +20,11 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const resolvedParams = await params;
   const currentTag = resolvedParams.slug?.[0] || DEFAULT_TAG;
-
   const formattedTag = currentTag.charAt(0).toUpperCase() + currentTag.slice(1);
-  const pageTitle = `${formattedTag} Notes | NoteHub`;
-  const pageDescription = `View and manage your filtered notes for category: ${currentTag}. Stay organized.`;
 
   return {
-    title: pageTitle,
-    description: pageDescription,
-    openGraph: {
-      title: pageTitle,
-      description: pageDescription,
-      // ГАРАНТОВАНО ВИПРАВЛЕНО: Знак долара $ та коса риска / на місці для правильної інтерполяції рядка!
-      url: `https://notehub.com/${currentTag}`,
-      images: [
-        {
-          url: "https://ac.goit.global/fullstack/react/notehub-og-meta.jpg",
-          width: 1200,
-          height: 630,
-          alt: `${formattedTag} notes filtering page on NoteHub`,
-        },
-      ],
-    },
+    title: `${formattedTag} Notes | NoteHub`,
+    description: `View and manage your filtered notes for category: ${currentTag}.`,
   };
 }
 
@@ -59,7 +41,7 @@ export default async function NotesPage({ params, searchParams }: PageProps) {
 
   try {
     await queryClient.prefetchQuery({
-      queryKey: queryKey,
+      queryKey,
       queryFn: () =>
         fetchNotes({
           page: currentPage,
@@ -75,12 +57,7 @@ export default async function NotesPage({ params, searchParams }: PageProps) {
   return (
     <Suspense fallback={<Loading />}>
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <NotesClient
-          key={`${currentTag}`}
-          initialPage={currentPage}
-          initialSearch={searchTerm}
-          tag={currentTag}
-        />
+        <NotesClient tag={currentTag} />
       </HydrationBoundary>
     </Suspense>
   );
