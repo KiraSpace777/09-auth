@@ -15,22 +15,22 @@ import { useAuthStore } from "@/lib/store/authStore";
 import type { User } from "@/types/user";
 import css from "./SignInPage.module.css";
 
-// КОНСТАНТИ ДЛЯ НАЛАШТУВАННЯ ВАЛІДАЦІЇ ТА КЕШУВАННЯ МАРШРУТІВ
-const MIN_USERNAME_LENGTH = 3;
+// КОНСТАНТИ ДЛЯ НАЛАШТУВАННЯ ВАЛІДАЦІЇ ТА КЕРУВАННЯ МАРШРУТАМИ
+const MIN_PASSWORD_LENGTH = 3;
 const REDIRECT_SUCCESS_PATH = "/profile";
 
-// ПОЧАТКОВИЙ СТАН ПОЛІВ ФОРМИ ЗГІДНО З НОВИМИ ПАРАМЕТРАМИ АПІ
+// ПОЧАТКОВИЙ СТАН ПОЛІВ ФОРМИ ДЛЯ ТЕХНІЧНОЇ ВІДПОВІДНОСТІ ТИПАМ АПІ
 const INITIAL_VALUES = {
   email: "",
-  username: "",
+  password: "",
 };
 
-// СХЕМА ВАЛІДАЦІЇ ДЛЯ ПЕРЕВІРКИ ЕЛЕКТРОННОЇ ПОШТИ ТА ІМЕНІ КОРИСТУВАЧА
+// СХЕМА ВАЛІДАЦІЇ ДЛЯ ПЕРЕВІРКИ ЕЛЕКТРОННОЇ ПОШТИ ТА ПАРОЛЯ
 const SignInValidationSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email address").required("Email is required"),
-  username: Yup.string()
-    .min(MIN_USERNAME_LENGTH, `Username must be at least ${MIN_USERNAME_LENGTH} characters`)
-    .required("Username is required"),
+  password: Yup.string()
+    .min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters`)
+    .required("Password is required"),
 });
 
 // ТИПІЗАЦІЯ ДЛЯ СЕРВЕРНИХ ПОМИЛОК ВІДПОВІДІ
@@ -42,10 +42,10 @@ interface ApiErrorResponse {
 export default function SignInPage() {
   const router = useRouter();
 
-  // ОТРИМАННЯ АКТУАЛЬНОГО СТАНУ ТА МЕТОДІВ З ГЛОБАЛЬНОГО СХОВИЩА ЗУСТАНД
+  // ОТРИМАННЯ АКТУАЛЬНОГО СТАНУ ТА МЕТОДІВ ІЗ ГЛОБАЛЬНОГО СХОВИЩА ЗУСТАНД
   const { isAuthenticated, setUser } = useAuthStore();
 
-  // АВТОМАТИЧНИЙ ПЕРЕНАПРАВЛЕННЯ ВЖЕ АВТОРИЗОВАНОГО КОРИСТУВАЧА В ПРОФІЛЬ
+  // АВТОМАТИЧНЕ ПЕРЕНАПРАВЛЕННЯ ВЖЕ АВТОРІЗОВАНОГО КОРИСТУВАЧА В ПРОФІЛЬ
   useEffect(() => {
     if (isAuthenticated) {
       router.replace(REDIRECT_SUCCESS_PATH);
@@ -60,7 +60,7 @@ export default function SignInPage() {
   >({
     mutationFn: loginApi,
     onSuccess: (userData) => {
-      // ЗБЕРЕЖЕННЯ ОБ'ЄКТА АВТОРИЗОВАНОГО КОРИСТУВАЧА В ГЛОБАЛЬНИЙ СТОР
+      // ЗБЕРЕЖЕННЯ ОБ'ЄКТА АВТОРІЗОВАНОГО КОРИСТУВАЧА В ГЛОБАЛЬНИЙ СТОР
       setUser(userData);
 
       // ПЕРЕХІД ДО ОСОБИСТОГО КАБІНЕТУ ПІСЛЯ УСПІШНОГО ВХОДУ
@@ -97,17 +97,17 @@ export default function SignInPage() {
               <ErrorMessage name="email" component="div" className={css.error} />
             </div>
 
-            {/* ПОЛЕ ВВЕДЕННЯ ІМЕНІ КОРИСТУВАЧА ЗАМІСТЬ СТAРОГО ПAРОЛЯ */}
+            {/* ПОЛЕ ВВЕДЕННЯ ПАРОЛЯ КОРИСТУВАЧА З ВИПРАВЛЕНИМ ТЕХНІЧНИМ ІМЕНЕМ */}
             <div className={css.formGroup}>
-              <label htmlFor="username">Username</label>
+              <label htmlFor="password">Password</label>
               <Field
-                type="text"
-                id="username"
-                name="username"
+                type="password"
+                id="password"
+                name="password"
                 className={css.input}
-                placeholder="Enter username"
+                placeholder="Enter password"
               />
-              <ErrorMessage name="username" component="div" className={css.error} />
+              <ErrorMessage name="password" component="div" className={css.error} />
             </div>
 
             {/* БЛОК КНОПКИ ВІДПРАВКИ ДАНИХ АВТЕНТИФІКАЦІЇ */}

@@ -1,13 +1,13 @@
 // lib/api/clientApi.ts
 // ====================
-// Функції для виконання HTTP-запитів у клієнтських компонентах через проксі
+// Конфігурація та функції клієнтських запитів до API через проксі-сервер
 
 import { api } from "./api";
 import type { Note, CreateNoteData } from "@/types/note";
 import type { AxiosResponse } from "axios";
 import type { User } from "@/types/user";
 
-// КОНСТАНТИ ЕНДПОЇНТІВ ДЛЯ ВНУТРІШНЬОГО ПРОКСІ-СЕРВЕРА NEXT.JS
+// КОНСТАНТИ МАРШРУТІВ КЛІЄНТСЬКОГО API ДЛЯ ВНУТРІШНЬОГО ПРОКСІ
 export const NOTES_ENDPOINT = "/notes";
 export const REGISTER_ENDPOINT = "/auth/register";
 export const LOGIN_ENDPOINT = "/auth/login";
@@ -15,13 +15,13 @@ export const SESSION_ENDPOINT = "/auth/session";
 export const LOGOUT_ENDPOINT = "/auth/logout";
 export const USERS_ME_ENDPOINT = "/users/me";
 
-// ТИПІЗАЦІЯ СТРУКТУРИ СПИСКУ НОТАТОК ДЛЯ ВІДПОВІДІ API
+// ТИПІЗАЦІЯ ДЛЯ СТРУКТУРИ ВІДПОВІДІ СПИСКУ НОТАТОК
 export interface FetchNotesResponse {
   notes: Note[];
   totalPages: number;
 }
 
-// ТИПІЗАЦІЯ ПАРАМЕТРІВ ДЛЯ ФІЛЬТРАЦІЇ ТА ПАГІНАЦІЇ
+// ТИПІЗАЦІЯ ПАРАМЕТРІВ ЗАПИТУ НОТАТОК ДЛЯ ПАГІНАЦІЇ
 export interface FetchNotesParams {
   page: number;
   perPage: number;
@@ -29,7 +29,7 @@ export interface FetchNotesParams {
   tag?: string;
 }
 
-// ОТРИМАННЯ СПИСКУ НОТАТОК З УРАХУВАННЯМ ПАРАМЕТРІВ ФІЛЬТРАЦІЇ ТА ПОШУКУ
+// ОТРИМАННЯ СПИСКУ НОТАТОК ІЗ ФІЛЬТРАЦІЄЮ ТА ПАГІНАЦІЄЮ
 export const fetchNotes = async ({
   page,
   perPage,
@@ -37,8 +37,6 @@ export const fetchNotes = async ({
   tag,
 }: FetchNotesParams): Promise<FetchNotesResponse> => {
   const queryTag = tag === "all" ? undefined : tag;
-
-  // ПЕРЕДАЧА ПАРАМЕТРІВ НА ПРОКСІ-МАРШРУТ (БЕКЕНД ОЧІКУЄ ПАРАМЕТР TAG)
   const response: AxiosResponse<FetchNotesResponse> = await api.get<FetchNotesResponse>(
     NOTES_ENDPOINT,
     {
@@ -53,37 +51,37 @@ export const fetchNotes = async ({
   return response.data;
 };
 
-// ОТРИМАННЯ ОДНІЄЇ КОНКРЕТНОЇ НОТАТКИ ЗА ЇЇ УНІКАЛЬНИМ ID
+// ОТРИМАННЯ КОНКРЕТНОЇ НОТАТКИ ЗА ЇЇ ID НА КЛІЄНТІ
 export const fetchNoteById = async (id: string): Promise<Note> => {
   const response: AxiosResponse<Note> = await api.get<Note>(`${NOTES_ENDPOINT}/${id}`);
   return response.data;
 };
 
-// СТВОРЕННЯ НОВОЇ НОТАТКИ КОРИСТУВАЧЕМ ЧЕРЕЗ ВНУТРІШНІЙ ПРОКСІ
+// СТВОРЕННЯ НОВОЇ НОТАТКИ ЧЕРЕЗ КЛІЄНТСЬКУ ФОРМУ
 export const createNote = async (noteData: CreateNoteData): Promise<Note> => {
   const { data } = await api.post<Note>(NOTES_ENDPOINT, noteData);
   return data;
 };
 
-// ВИДАЛЕННЯ ІСНУЮЧОЇ НОТАТКИ ЗА ID КОРИСТУВАЧА
+// ВИДАЛЕННЯ НОТАТКИ ЗА ЇЇ ID
 export const deleteNote = async (id: string): Promise<Note> => {
   const response: AxiosResponse<Note> = await api.delete<Note>(`${NOTES_ENDPOINT}/${id}`);
   return response.data;
 };
 
-// РЕЄСТРАЦІЯ НОВОГО ОБЛИКОВОГО ЗАПИСУ КОРИСТУВАЧА
-export const register = async (userData: { email: string; username: string }): Promise<User> => {
+// ОНОВЛЕНО: ТИПІЗАЦІЯ ДЛЯ РЕЄСТРАЦІЇ СУВОРO ОЧІКУЄ ПАРАМЕТРИ EMAIL ТA PASSWORD ДЛЯ ФОРМИ
+export const register = async (userData: { email: string; password: string }): Promise<User> => {
   const { data } = await api.post<User>(REGISTER_ENDPOINT, userData);
   return data;
 };
 
-// АВТЕНТИФІКАЦІЯ ТA ВХІД КОРИСТУВАЧА В СИСТЕМУ
-export const login = async (credentials: { email: string; username: string }): Promise<User> => {
+// ОНОВЛЕНО: ТИПІЗАЦІЯ ДЛЯ ВХОДУ СУВОРO ОЧІКУЄ ПАРАМЕТРИ EMAIL ТA PASSWORD ДЛЯ ФОРМИ
+export const login = async (credentials: { email: string; password: string }): Promise<User> => {
   const { data } = await api.post<User>(LOGIN_ENDPOINT, credentials);
   return data;
 };
 
-// ПЕРЕВІРКА НАЯВНОСТІ АКТИВНОЇ СЕСІЇ ПРИ ПЕРЕЗАВАНТАЖЕННІ СТОРІНКИ
+// АВТОМАТИЧНА ПЕРЕВІРКА АКТИВНОЇ СЕСІЇ ПРИ ЗАВАНТАЖЕННІ САЙТУ
 export const checkSession = async (): Promise<{ success: boolean } | null> => {
   try {
     const { data } = await api.get<{ success: boolean }>(SESSION_ENDPOINT);
@@ -94,18 +92,18 @@ export const checkSession = async (): Promise<{ success: boolean } | null> => {
   }
 };
 
-// ВИХІД ІЗ СИСТЕМИ ТА ОЧИЩЕННЯ HTTPONLY КУК НА ПРОКСІ-СЕРВЕРІ
+// СТИРАННЯ СЕСІЙНИХ КУК НА ПРОКСІ-СЕРВЕРІ
 export const logout = async (): Promise<void> => {
   await api.post(LOGOUT_ENDPOINT);
 };
 
-// ОТРИМАННЯ ДАНИХ ПОТОЧНОГО ПРОФІЛЮ АВТОРИЗОВАНОГО КОРИСТУВАЧА
+// ОТРИМАННЯ ДАНИХ ПОТОЧНОГО ПРОФІЛЮ КОРИСТУВАЧА
 export const getMe = async (): Promise<User> => {
   const { data } = await api.get<User>(USERS_ME_ENDPOINT);
   return data;
 };
 
-// ОНОВЛЕННЯ ТЕКСТОВИХ ДАНИХ (ІМЕНІ) ПОТОЧНОГО КОРИСТУВАЧА
+// ОНОВЛЕННЯ ТЕКСТОВИХ ДАНИХ ПРОФІЛЮ КОРИСТУВАЧА
 export const updateMe = async (updatedData: { username: string }): Promise<User> => {
   const { data } = await api.patch<User>(USERS_ME_ENDPOINT, updatedData);
   return data;

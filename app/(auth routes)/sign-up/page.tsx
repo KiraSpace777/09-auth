@@ -15,21 +15,21 @@ import type { User } from "@/types/user";
 import css from "./SignUpPage.module.css";
 
 // КОНСТАНТИ ДЛЯ НАЛАШТУВАННЯ ВАЛІДАЦІЇ ТА КЕШУВАННЯ МАРШРУТІВ
-const MIN_USERNAME_LENGTH = 3;
+const MIN_PASSWORD_LENGTH = 3;
 const REDIRECT_SUCCESS_PATH = "/profile";
 
 // ПОЧАТКОВИЙ СТАН ПОЛІВ ФОРМИ ЗГІДНО З НОВИМИ ПАРАМЕТРАМИ АПІ
 const INITIAL_VALUES = {
   email: "",
-  username: "",
+  password: "",
 };
 
 // СХЕМА ВАЛІДАЦІЇ ДЛЯ ПЕРЕВІРКИ ЕЛЕКТРОННОЇ ПОШТИ ТА ІМЕНІ КОРИСТУВАЧА
 const SignUpValidationSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email address").required("Email is required"),
-  username: Yup.string()
-    .min(MIN_USERNAME_LENGTH, `Username must be at least ${MIN_USERNAME_LENGTH} characters`)
-    .required("Username is required"),
+  password: Yup.string()
+    .min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters`)
+    .required("Password is required"),
 });
 
 // ТИПІЗАЦІЯ ДЛЯ СЕРВЕРНИХ ПОМИЛОК ВІДПОВІДІ
@@ -55,7 +55,7 @@ export default function SignUpPage() {
       // ЗБЕРЕЖЕННЯ СЕСІЇ СТВОРЕНОГО КОРИСТУВАЧА У ГЛОБАЛЬНОМУ СТАНІ ПРОГРАМИ
       setUser(userData);
 
-      // АВТОМАТИЧНЕ ПЕРЕНАПРАВЛЕННЯ НА ВНУТРІШНЮ СТОРІНКУ ПІСЛЯ СТВОРЕННЯ ОБЛІКОВОГО ЗАПИСУ
+      // АВТОМАТИЧНИЙ ПЕРЕНАПРАВЛЕННЯ НА ВНУТРІШНЮ СТОРІНКУ ПІСЛЯ СТВОРЕННЯ ОБЛІКОВОГО ЗАПИСУ
       router.push(REDIRECT_SUCCESS_PATH);
     },
   });
@@ -91,13 +91,13 @@ export default function SignUpPage() {
 
             {/* ПОЛЕ ВВЕДЕННЯ ІМЕНІ НОВОГО КОРИСТУВАЧА ЗАМІСТЬ СТAРОГО ПAРОЛЯ */}
             <div className={css.formGroup}>
-              <label htmlFor="username">Username</label>
+              <label htmlFor="password">Username</label>
               <Field
-                type="text"
-                id="username"
+                type="password"
+                id="password"
                 name="username"
                 className={css.input}
-                placeholder="Enter username"
+                placeholder="Enter password"
               />
               <ErrorMessage name="username" component="div" className={css.error} />
             </div>
