@@ -27,27 +27,55 @@ export default async function proxy(request: NextRequest) {
   let responseWithNewCookies: NextResponse | null = null;
 
   // ЛОГІКА ОНОВЛЕННЯ СЕСІЇ ЧЕРЕЗ checkSession
-  // Якщо токен відсутній у куках, виконуємо перевірку/відновлення сесії через API
   if (!sessionToken) {
     try {
       const response = await checkSession();
 
-      // Якщо сервер успішно відповів (200 OK) і надіслав нові куки через заголовки
       if (response && response.status === 200) {
-        // Оновлюємо значення токена, щоб пропустити користувача далі на приватний маршрут
-        const freshCookieStore = await cookies();
-        sessionToken = freshCookieStore.get(AUTH_TOKEN_KEY)?.value;
-
-        // Створюємо об'єкт відповіді, щоб зберегти сесію в браузері користувача
+        // Створюємо об'єкт відповіді Next.js Middleware
         responseWithNewCookies = NextResponse.next();
 
-        // Витягуємо "Set-Cookie" заголовки з відповіді Axios та копіюємо їх у NextResponse
-        const setCookieHeader = response.headers["set-cookie"];
-        if (setCookieHeader) {
-          setCookieHeader.forEach((cookieStr) => {
-            responseWithNewCookies?.headers.append("Set-Cookie", cookieStr);
-          });
+        // НОРМАЛІЗАЦІЯ ЗАГОЛОВКА SET-COOKIE (Рядок або Масив)
+        const rawSetCookie = response.headers["set-cookie"];
+        let setCookieHeader: string[] = [];
+
+        if (rawSetCookie) {
+          if (Array.isArray(rawSetCookie)) {
+            setCookieHeader = rawSetCookie;
+          } else {
+            setCookieHeader = [rawSetCookie];
+          }
         }
+
+        // БЕЗПЕЧНА ІТЕРАЦІЯ ТА СУМІСНЕ ВСТАНОВЛЕННЯ COOKIES В NEXTRESPONSE
+        setCookieHeader.forEach((cookieStr) => {
+          // Додаємо заголовок у вихідну відповідь для браузера
+          responseWithNewCookies?.headers.append("Set-Cookie", cookieStr);
+
+          // ПАРСИНГ КУКИ ДЛЯ ОНОВЛЕННЯ ВНУТРІШНЬОГО СТАНУ MIDDLEWARE
+          const parts = cookieStr.split(";");
+          const firstPart = parts[0];
+          if (firstPart) {
+            const equalSignIndex = firstPart.indexOf("=");
+            if (equalSignIndex !== -1) {
+              const key = firstPart.substring(0, equalSignIndex).trim();
+              const value = firstPart.substring(equalSignIndex + 1).trim();
+
+              // Обов'язково фіксуємо токен у Middleware відповіді через офіційне API .cookies.set
+              responseWithNewCookies?.cookies.set(key, value, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "lax",
+              });
+
+              // Якщо оновився саме accessToken, зберігаємо його для поточних перевірок маршрутів
+              if (key === AUTH_TOKEN_KEY) {
+                sessionToken = value;
+              }
+            }
+          }
+        });
+
         console.log(`[Proxy Guard]: Session successfully restored via checkSession()`);
       }
     } catch (error) {
@@ -62,27 +90,34 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // ПЕРЕВІРКА ПУБЛІЧНИХ МАРШРУТІВ (Виправлено редирект на головну /)
+  // ПЕРЕВІРКА ПУБЛІЧНИХ МАРШРУТІВ (Виправлено редирект з /profile на головну /)
   const isPublic = PUBLIC_ROUTES.some((route) => pathname === route);
   if (isPublic && sessionToken) {
-    // Якщо користувач авторизований, редирект має бути на головну сторінку (/), а не на сторінку входу
     if (pathname !== "/") {
       const homeUrl = new URL("/", request.url);
       const redirectResponse = NextResponse.redirect(homeUrl);
 
-      // Передаємо нові куки у відповідь редиректу, якщо вони були оновлені
+      // Копіюємо заголовки Set-Cookie та cookies у відповідь редиректу
       if (responseWithNewCookies) {
         responseWithNewCookies.headers.forEach((value, key) => {
           if (key.toLowerCase() === "set-cookie") {
             redirectResponse.headers.append(key, value);
           }
         });
+
+        responseWithNewCookies.cookies.getAll().forEach((cookie) => {
+          redirectResponse.cookies.set(cookie.name, cookie.value, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+          });
+        });
       }
       return redirectResponse;
     }
   }
 
-  // Повертаємо відповідь з оновленими заголовками "Set-Cookie", або просто продовжуємо запит
+  // Повертаємо відповідь з оновленими токенами або продовжуємо запит
   return responseWithNewCookies || NextResponse.next();
 }
 
