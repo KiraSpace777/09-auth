@@ -7,7 +7,7 @@ import React from "react";
 // ТИПІЗАЦІЯ ПРИВАТНОГО ЛЕЙAУТУ СТОРІНКИ
 interface PrivateLayoutProps {
   children: React.ReactNode;
-  modal: React.ReactNode; // ПРИЙМАЄМО МОДАЛЬНЕ ВІКНО НА РІВНІ ПАПКИ @MODAL
+  modal: React.ReactNode;
 }
 
 // СЕРВЕРНИЙ КОМПОНЕНТ ДЛЯ ОДНОЧАСНОГО ВИВЕДЕННЯ СТОРІНОК ТА ПРЕВ'Ю НОТАТОК

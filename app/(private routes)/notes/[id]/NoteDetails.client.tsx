@@ -43,10 +43,6 @@ export default function NoteDetailsClient() {
   }
 
   return (
-    /* 
-      ВИПРАВЛЕНО: Рендеримо структуру строго відповідно до вашого CSS-файлу.
-      Тег <main> тепер єдиний, тому властивість flex: 1 або ширини спрацює правильно.
-    */
     <main className={css.main}>
       <div className={css.container}>
         <div className={css.item}>

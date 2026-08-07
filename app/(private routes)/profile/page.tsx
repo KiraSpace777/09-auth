@@ -1,8 +1,3 @@
-// -----------------------------------------------
-//  сторінка реєстрації
-// -----------------------------------------------
-//  app/(private routes)/profile/page.tsx
-// -----------------------------------------------
 // app/(private routes)/profile/page.tsx
 // =====================================
 // Серверна сторінка детального профілю користувача (SSR)
@@ -10,7 +5,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { getMe } from "@/lib/api/serverApi"; // ВИКОРИСТАННЯ СЕРВЕРНОЇ ФУНКЦІЇ ДЛЯ ОТРИМАННЯ ДАНИХ
+import { getMe } from "@/lib/api/serverApi";
 import css from "./ProfilePage.module.css";
 
 const EDIT_PROFILE_ROUTE = "/profile/edit";
@@ -22,7 +17,6 @@ export const metadata: Metadata = {
 };
 
 export default async function ProfilePage() {
-  // ПРЯМЕ СЕРВЕРНЕ ОТРИМАННЯ ДАНИХ КОРИСТУВАЧА НА ЕТАПІ РЕНДЕРИНГУ СТОРІНКИ
   const user = await getMe();
 
   return (
