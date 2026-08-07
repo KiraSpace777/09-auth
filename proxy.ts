@@ -2,13 +2,17 @@
 // ========
 // Проміжне програмне забезпечення для контролю доступу до приватних зон програми
 
+// proxy.ts
+// ========
+// Проміжне програмне забезпечення для контролю доступу до приватних зон програми
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { cookies } from "next/headers"; // АСИНХРОННЕ ЗЧИТУВАННЯ КУКІВ ДЛЯ НОВИХ ВЕРСІЙ NEXT.JS
 import type { NextRequest } from "next/server";
 import { checkSession } from "./lib/api/serverApi";
 
 const SIGN_IN_PATH = "/sign-in";
 const AUTH_TOKEN_KEY = "accessToken";
+const REFRESH_TOKEN_KEY = "refreshToken";
 const PRIVATE_ROUTES = ["/profile", "/notes"];
 const PUBLIC_ROUTES = ["/sign-in", "/sign-up", "/"];
 
@@ -19,20 +23,21 @@ export const config = {
 export default async function proxy(request: NextRequest) {
   // АСИНХРОННЕ ОТРИМАННЯ КУКІВ ЗГІДНО З РЕКОМЕНДАЦІЯМИ NEXT.JS PROXY API
   const cookieStore = await cookies();
-  let sessionToken = cookieStore.get(AUTH_TOKEN_KEY)?.value;
-  const { pathname } = request.nextUrl;
+  let accessToken = cookieStore.get(AUTH_TOKEN_KEY)?.value;
+  const refreshToken = cookieStore.get(REFRESH_TOKEN_KEY)?.value;
 
-  console.log(`[Proxy Guard]: Route -> ${pathname} | Token Active -> ${!!sessionToken}`);
+  const { pathname } = request.nextUrl;
+  console.log(`[Proxy Guard]: Route -> ${pathname} | Token Active -> ${!!accessToken}`);
 
   let responseWithNewCookies: NextResponse | null = null;
 
   // ЛОГІКА ОНОВЛЕННЯ СЕСІЇ ЧЕРЕЗ checkSession
-  if (!sessionToken) {
+  // Запит йде ТІЛЬКИ якщо accessToken відсутній, АЛЕ refreshToken обов'язково є
+  if (!accessToken && refreshToken) {
     try {
       const response = await checkSession();
 
       if (response && response.status === 200) {
-        // Створюємо об'єкт відповіді Next.js Middleware
         responseWithNewCookies = NextResponse.next();
 
         // НОРМАЛІЗАЦІЯ ЗАГОЛОВКА SET-COOKIE (Рядок або Масив)
@@ -47,30 +52,30 @@ export default async function proxy(request: NextRequest) {
           }
         }
 
-        // БЕЗПЕЧНА ІТЕРАЦІЯ ТА СУМІСНЕ ВСТАНОВЛЕННЯ COOKIES В NEXTRESPONSE
+        // БЕЗПЕЧНА ОБРОБКА ТА ВСТАНОВЛЕННЯ COOKIES ЧЕРЕЗ СУМІСНЕ MIDDLEWARE API
         setCookieHeader.forEach((cookieStr) => {
-          // Додаємо заголовок у вихідну відповідь для браузера
+          // Передаємо заголовок для браузера
           responseWithNewCookies?.headers.append("Set-Cookie", cookieStr);
 
-          // ПАРСИНГ КУКИ ДЛЯ ОНОВЛЕННЯ ВНУТРІШНЬОГО СТАНУ MIDDLEWARE
-          const parts = cookieStr.split(";");
-          const firstPart = parts[0];
-          if (firstPart) {
-            const equalSignIndex = firstPart.indexOf("=");
+          // Безпечне виділення пари Ключ=Значення з урахуванням комплексних параметрів (Expires, Max-Age)
+          const cookiePair = cookieStr.split(";")[0];
+          if (cookiePair) {
+            const equalSignIndex = cookiePair.indexOf("=");
             if (equalSignIndex !== -1) {
-              const key = firstPart.substring(0, equalSignIndex).trim();
-              const value = firstPart.substring(equalSignIndex + 1).trim();
+              const key = cookiePair.substring(0, equalSignIndex).trim();
+              const value = cookiePair.substring(equalSignIndex + 1).trim();
 
-              // Обов'язково фіксуємо токен у Middleware відповіді через офіційне API .cookies.set
+              // ОНОВЛЕННЯ ОФІЦІЙНИМ МЕТОДОМ NEXT.JS ДЛЯ КОРЕКТНОЇ РОБОТИ EDGE RUNTIME
               responseWithNewCookies?.cookies.set(key, value, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
                 sameSite: "lax",
+                path: "/",
               });
 
-              // Якщо оновився саме accessToken, зберігаємо його для поточних перевірок маршрутів
+              // Актуалізуємо токен для перевірки приватних роутів нижче
               if (key === AUTH_TOKEN_KEY) {
-                sessionToken = value;
+                accessToken = value;
               }
             }
           }
@@ -85,19 +90,19 @@ export default async function proxy(request: NextRequest) {
 
   // ПЕРЕВІРКА ПРИВАТНИХ МАРШРУТІВ
   const isPrivate = PRIVATE_ROUTES.some((route) => pathname.startsWith(route));
-  if (isPrivate && !sessionToken) {
+  if (isPrivate && !accessToken) {
     const loginUrl = new URL(SIGN_IN_PATH, request.url);
     return NextResponse.redirect(loginUrl);
   }
 
-  // ПЕРЕВІРКА ПУБЛІЧНИХ МАРШРУТІВ (Виправлено редирект з /profile на головну /)
+  // ПЕРЕВІРКА ПУБЛІЧНИХ МАРШРУТІВ (перенаправлення/редирект на головну сторінку "/" )
   const isPublic = PUBLIC_ROUTES.some((route) => pathname === route);
-  if (isPublic && sessionToken) {
+  if (isPublic && accessToken) {
     if (pathname !== "/") {
       const homeUrl = new URL("/", request.url);
       const redirectResponse = NextResponse.redirect(homeUrl);
 
-      // Копіюємо заголовки Set-Cookie та cookies у відповідь редиректу
+      // Синхронізуємо абсолютно всі заголовки та куки у відповідь редиректу
       if (responseWithNewCookies) {
         responseWithNewCookies.headers.forEach((value, key) => {
           if (key.toLowerCase() === "set-cookie") {
@@ -110,6 +115,7 @@ export default async function proxy(request: NextRequest) {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
+            path: "/",
           });
         });
       }
@@ -120,45 +126,3 @@ export default async function proxy(request: NextRequest) {
   // Повертаємо відповідь з оновленими токенами або продовжуємо запит
   return responseWithNewCookies || NextResponse.next();
 }
-
-// // proxy.ts
-// // ========
-// // Проміжне програмне забезпечення для контролю доступу до приватних зон програми
-
-// import { NextResponse } from "next/server";
-// import { cookies } from "next/headers"; // АСИНХРОННЕ ЗЧИТУВАННЯ КУКІВ ДЛЯ НОВИХ ВЕРСІЙ NEXT.JS
-// import type { NextRequest } from "next/server";
-
-// const SIGN_IN_PATH = "/sign-in";
-// const PROFILE_PATH = "/profile";
-// const AUTH_TOKEN_KEY = "accessToken";
-
-// const PRIVATE_ROUTES = ["/profile", "/notes"];
-// const PUBLIC_ROUTES = ["/sign-in", "/sign-up", "/"];
-
-// export const config = {
-//   matcher: ["/notes/:path*", "/profile/:path*", "/sign-in", "/sign-up"],
-// };
-
-// export default async function proxy(request: NextRequest) {
-//   // АСИНХРОННЕ ОТРИМАННЯ КУКІВ ЗГІДНО З РЕКОМЕНДАЦІЯМИ NEXT.JS PROXY API
-//   const cookieStore = await cookies();
-//   const sessionToken = cookieStore.get(AUTH_TOKEN_KEY);
-//   const { pathname } = request.nextUrl;
-
-//   console.log(`[Proxy Guard]: Route -> ${pathname} | Token Active -> ${!!sessionToken}`);
-
-//   const isPrivate = PRIVATE_ROUTES.some((route) => pathname.startsWith(route));
-//   if (isPrivate && !sessionToken) {
-//     const loginUrl = new URL(SIGN_IN_PATH, request.url);
-//     return NextResponse.redirect(loginUrl);
-//   }
-
-//   const isPublic = PUBLIC_ROUTES.some((route) => pathname === route);
-//   if (isPublic && sessionToken && pathname !== PROFILE_PATH) {
-//     const profileUrl = new URL(PROFILE_PATH, request.url);
-//     return NextResponse.redirect(profileUrl);
-//   }
-
-//   return NextResponse.next();
-// }
